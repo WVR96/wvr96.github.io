@@ -99,7 +99,7 @@ li.me{font-weight:700}
 <div class="grid">
 <main>
 <div class="panel bar">
-<div><label for="name">Player name</label><input id="name" maxlength="14" placeholder="Enter name"></div>
+<div><label for="name">Player name</label><input id="name" maxlength="14" placeholder="Name, then press Enter"></div>
 <div><label>Bankroll</label><div class="bal" id="bank"></div></div>
 <div><label>Best</label><div class="bal" id="best" style="font-size:18px"></div></div>
 </div>
@@ -133,10 +133,12 @@ const STAKES=[10,50,100,200,500,1000],START=1000,$=id=>document.getElementById(i
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const gbp=p=>'£'+(p/100).toFixed(2),lab=p=>p<100?p+'p':'£'+p/100;
 const KS='imperial-bj:save',KL='imperial-bj:lb';
-let S={name:'',bank:START,best:START,stake:0,last:0,mute:false,hints:false,felt:'g',bgc:0,back:'r',st:{h:0,w:0,l:0,p:0,bj:0,big:0,run:0,bestRun:0},ach:{},daily:{d:'',w:0}},LB={};
+let S={name:'',lbName:'',bank:START,best:START,stake:0,last:0,mute:false,hints:false,felt:'g',bgc:0,back:'r',st:{h:0,w:0,l:0,p:0,bj:0,big:0,run:0,bestRun:0},ach:{},daily:{d:'',w:0}},LB={};
 try{Object.assign(S,JSON.parse(localStorage.getItem(KS)||'{}'));LB=JSON.parse(localStorage.getItem(KL)||'{}')}catch(e){}
+if(!S.lbName&&S.name&&LB[S.name.trim()])S.lbName=S.name.trim();
+S.stake=0;if(!Number.isFinite(S.bank)||!Number.isFinite(S.best))S.bank=S.best=START;
 function save(){
- const n=S.name.trim()||'Player';LB[n]=Math.max(LB[n]||0,S.best);
+ const n=(S.lbName||'').trim();if(n)LB[n]=Math.max(LB[n]||0,S.best);
  try{localStorage.setItem(KS,JSON.stringify(S));localStorage.setItem(KL,JSON.stringify(LB))}catch(e){}
 }
 let deck=[],P=[],D=[],bet=0,ins=0,offer=false,dbld=false,phase='bet',busy=false,hole=null,dealerHidden=false;
@@ -179,7 +181,7 @@ function ui(){
  board();extra();
 }
 function board(){
- const me=S.name.trim()||'Player';
+ const me=S.lbName||'';
  const rows=Object.entries(LB).sort((a,b)=>b[1]-a[1]).slice(0,10);
  $('lb').innerHTML=rows.map(([n,v])=>`<li class="${n===me?'me':''}">${n.replace(/[<>&]/g,'')}<span>${gbp(v)}</span></li>`).join('')||'<li>No scores yet</li>';
 }
@@ -282,7 +284,10 @@ for(const k of ['felt','bgc','back']){$(k).value=S[k];$(k).onchange=e=>{S[k]=e.t
 $('hints').checked=S.hints;$('hints').onchange=e=>{S.hints=e.target.checked;save();ui()};
 $('sound').checked=!S.mute;$('sound').onchange=e=>{S.mute=!e.target.checked;save()};$('hit').onclick=hit;$('stand').onclick=()=>{if(phase==='play'&&!busy)finish()};$('dbl').onclick=dbl;
 $('name').value=S.name;
-$('name').oninput=e=>{S.name=e.target.value;save();board()};
+$('name').oninput=e=>{S.name=e.target.value;save()};
+$('name').onkeydown=e=>{if(e.key!=='Enter')return;const n=S.name.trim();if(!n)return;
+ for(const k of Object.keys(LB))if(k!==S.lbName&&k!==n&&n.toLowerCase().startsWith(k.toLowerCase()))delete LB[k];
+ S.lbName=n;e.target.blur();save();board()};
 let armed=false;
 $('reset').onclick=function(){
  if(!armed){armed=true;this.textContent='Tap again to confirm new £10 challenge';setTimeout(()=>{armed=false;this.innerHTML='Reset &amp; start new £10 challenge'},3500);return}
