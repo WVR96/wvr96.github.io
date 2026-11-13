@@ -96,7 +96,11 @@ body.splash .wrap{display:none}body:not(.splash) #splash{display:none}
 #splash h1{font-size:clamp(24px,4.4vw,40px);margin:6px 0 4px}
 #splash .sub{font-size:15px;margin:0 0 10px}
 #splash .how{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;padding:10px 14px;margin:0 auto 12px;max-width:780px;font-size:13px;line-height:1.4}
-#splash .who{margin:0 0 14px}#splash .who label{display:inline;margin:0 10px 0 0;font-size:12px}#splash .who input{font-size:16px;padding:7px 12px;width:min(260px,70%)}
+#splash .row{display:flex;gap:14px;align-items:stretch;justify-content:center;max-width:920px;margin:0 auto 12px}
+#splash .row .how{margin:0;max-width:none;flex:1}
+#splash .who{margin:0;flex:none;width:230px;display:flex}
+#splash .who input{width:100%;height:auto;text-align:center;font-size:17px;border-color:var(--g2)}
+@media(max-width:760px){#splash .row{flex-direction:column;gap:8px}#splash .who{width:100%}#splash .who input{padding:9px 12px}}#splash .who input{font-size:16px;padding:7px 12px;width:min(260px,70%)}
 #splash .tiles{gap:14px}
 #splash .tile{gap:8px;padding:14px 12px}
 #splash .tile h2{font-size:22px}#splash .tile p{font-size:13px}
@@ -172,8 +176,9 @@ body.g-bc #bjmain,body.g-rl #bjmain{display:none}body:not(.g-bc) #bcmain{display
 <svg class="logo" viewBox="0 0 64 64" aria-label="Imperial crown logo"><circle cx="32" cy="32" r="29" fill="#0e5a3a" stroke="#d9a935" stroke-width="3"/><path d="M14 44 L12 22 L24 31 L32 16 L40 31 L52 22 L50 44 Z" fill="#d9a935" stroke="#f3cf6b" stroke-width="1.5" stroke-linejoin="round"/><rect x="14" y="46" width="36" height="5" rx="2" fill="#d9a935"/><circle cx="12" cy="21" r="3" fill="#f3cf6b"/><circle cx="32" cy="15" r="3" fill="#f3cf6b"/><circle cx="52" cy="21" r="3" fill="#f3cf6b"/></svg>
 <h1>Imperial Casino Challenge</h1>
 <p class="sub">You have <b>15 minutes</b> to turn £10 into as much as you can.</p>
-<ul class="how"><li>⏱ <b>15-minute limit:</b> the clock starts the moment you choose your first game.</li><li>💷 <b>Your goal:</b> you start with £10.00 of virtual money. Make as much as you can.</li><li>🔄 <b>Switch any time:</b> move between Blackjack, Baccarat and Roulette whenever you like. Your money carries over.</li><li>🏆 <b>Leaderboard:</b> your highest bankroll is ranked against other players.</li></ul>
-<div class="who"><label for="sname">Your name</label><input id="sname" maxlength="14" placeholder="Enter your name to play" autocomplete="off"></div>
+<div class="row"><ul class="how"><li>⏱ <b>15-minute limit:</b> the clock starts the moment you choose your first game.</li><li>💷 <b>Your goal:</b> you start with £10.00 of virtual money. Make as much as you can.</li><li>🔄 <b>Switch any time:</b> move between Blackjack, Baccarat and Roulette whenever you like. Your money carries over.</li><li>🏆 <b>Leaderboard:</b> your highest bankroll is ranked against other players.</li></ul>
+<div class="who"><input id="sname" maxlength="14" placeholder="Please Enter Name" aria-label="Your name" autocomplete="off"></div></div>
+
 <div class="tiles">
 <button class="tile" id="playbj"><div class="art"><div class="pc">A<br>♠</div><div class="pc r">K<br>♥</div></div><h2>Blackjack</h2><p>Beat the dealer to 21. Blackjack pays 3 to 2.</p><span class="go">PLAY NOW</span></button>
 <button class="tile" id="playbc"><div class="art"><div class="pc r">9<br>♦</div><div class="pc">K<br>♣</div></div><h2>Baccarat</h2><p>Player, Banker or Tie. Closest to 9 wins.</p><span class="go">PLAY NOW</span></button>
