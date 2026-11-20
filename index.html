@@ -168,6 +168,7 @@ body.g-bc #bjmain,body.g-rl #bjmain{display:none}body:not(.g-bc) #bcmain{display
 @keyframes spin{to{transform:rotate(360deg)}}
 #toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom,0px));transform:translate(-50%,30px);opacity:0;background:#000d;border:1px solid #d9a935;color:#f3cf6b;padding:12px 22px;border-radius:999px;transition:.3s;pointer-events:none;z-index:99}
 #toast.on{opacity:1;transform:translate(-50%,0)}
+.tabs{display:flex;gap:6px;margin:8px 0 2px}.tabs[hidden]{display:none}.tabs button{flex:1;min-width:0;padding:5px 4px;font-size:12px}
 </style>
 </head>
 <body class="splash">
@@ -251,6 +252,7 @@ body.g-bc #bjmain,body.g-rl #bjmain{display:none}body:not(.g-bc) #bcmain{display
 </main>
 <aside class="panel">
 <h2>Leaderboard</h2>
+<div class="tabs"><button data-p="all" class="sel">All-time</button><button data-p="week">Weekly</button><button data-p="day">Daily</button></div>
 <ol id="lb"></ol>
 <div class="note">Ranked by highest bankroll reached. Blackjack pays 3:2, dealer stands on 17. Scores are saved in this browser.</div>
 <h2 style="margin-top:18px">Stats &amp; Achievements</h2><div id="stats"></div>
@@ -266,9 +268,19 @@ let S={name:'',lbName:'',t0:0,ended:false,bank:START,best:START,stake:0,last:0,m
 try{Object.assign(S,JSON.parse(localStorage.getItem(KS)||'{}'));LB=JSON.parse(localStorage.getItem(KL)||'{}')}catch(e){}
 if(!S.lbName&&S.name&&LB[S.name.trim()])S.lbName=S.name.trim();
 S.stake=0;if(!Number.isFinite(S.bank)||!Number.isFinite(S.best))S.bank=S.best=START;
+/* ---------- Supabase shared leaderboard ---------- */
+const SB_URL='https://gupncyaipzbueulhpcka.supabase.co',SB_KEY='sb_publishable_pwq7GYjVCCwTCJPq30XCAg_V-2XD_2I';
+const online=()=>SB_URL.startsWith('https://')&&SB_KEY.length>40;
+let lastSent=0,LBR=null,period='all';
+async function sb(fn,args){const r=await fetch(SB_URL+'/rest/v1/rpc/'+fn,{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json'},body:JSON.stringify(args||{})});if(!r.ok)throw new Error(r.status);return r.json()}
+async function newSession(){S.tok=null;lastSent=0;if(!online()||!S.lbName)return;try{S.tok=await sb('start_session',{p_name:S.lbName});save();loadLB()}catch(e){}}
+async function submitBest(){if(!online()||!S.tok||!S.lbName)return;try{await sb('submit_score',{p_token:S.tok,p_name:S.lbName,p_best:S.best})}catch(e){}}
+async function loadLB(){if(!online())return;try{const d=await sb('get_leaderboard',{p_period:period});LBR=d.map(x=>[x.pname,x.pbest]);board()}catch(e){}}
+const lbRows=()=>online()&&LBR?LBR:Object.entries(LB).sort((a,b)=>b[1]-a[1]);
 function save(){
  const n=(S.lbName||'').trim();if(n)LB[n]=Math.max(LB[n]||0,S.best);
  try{localStorage.setItem(KS,JSON.stringify(S));localStorage.setItem(KL,JSON.stringify(LB))}catch(e){}
+ if(S.tok&&S.best>lastSent){lastSent=S.best;submitBest().then(loadLB)}
 }
 let deck=[],P=[],D=[],bet=0,ins=0,offer=false,dbld=false,phase='bet',busy=false,hole=null,dealerHidden=false;
 function shuffle(){
@@ -311,7 +323,7 @@ function ui(){
 }
 function board(){
  const me=S.lbName||'';
- const rows=Object.entries(LB).sort((a,b)=>b[1]-a[1]).slice(0,10);
+ const rows=lbRows().slice(0,10);
  $('lb').innerHTML=rows.map(([n,v])=>`<li class="${n===me?'me':''}">${n.replace(/[<>&]/g,'')}<span>${gbp(v)}</span></li>`).join('')||'<li>No scores yet</li>';
 }
 function say(t,c){const m=$('msg');m.textContent=t;m.className=c||''}
@@ -429,7 +441,7 @@ shuffle();save();ui();
 
 let tm2;function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(tm2);tm2=setTimeout(()=>t.classList.remove('on'),2200)}
 function enter(g){const n=$('sname').value.trim();if(!n){toast('Enter your name first');$('sname').focus();return}
- S.name=n;S.lbName=n;$('name').value=n;if(!S.t0){S.t0=Date.now();runClock()}save();board();
+ S.name=n;S.lbName=n;$('name').value=n;if(!S.t0){S.t0=Date.now();runClock();newSession()}save();board();
  document.body.classList.remove('splash','g-bj','g-bc','g-rl');document.body.classList.add('g-'+g);window.scrollTo(0,0);ui();bui();rui()}
 function menu(){if(busy||bplay||rplay||phase==='play')return;document.body.classList.remove('g-bj','g-bc','g-rl');document.body.classList.add('splash');$('sname').value=S.name;window.scrollTo(0,0)}
 $('sname').value=S.name;$('playbj').onclick=()=>enter('bj');$('playbc').onclick=()=>enter('bc');$('playrl').onclick=()=>enter('rl');$('menu').onclick=menu;$('menu2').onclick=menu;$('menu3').onclick=menu;
@@ -595,11 +607,11 @@ function tick(){
  const left=LIM-(Date.now()-S.t0),broke=S.bank<10;ck.hidden=false;
  if(left<=0||broke){TU=true;
   if(inProg()){ck.textContent='⏱ 0:00 · finish this hand';ck.classList.add('low');return}
-  clearInterval(clk);clk=0;S.ended=true;save();ck.hidden=true;showEnd(left<=0?'Time’s up!':'Out of funds!');return}
+  clearInterval(clk);clk=0;S.ended=true;save();ck.hidden=true;const T=left<=0?'Time’s up!':'Out of funds!';(async()=>{await submitBest();await loadLB();showEnd(T)})();return}
  const s=Math.ceil(left/1000);ck.textContent='⏱ '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0');ck.classList.toggle('low',s<=60);
 }
 function showEnd(title){
- const me=(S.lbName||S.name||'Guest').replace(/[<>&]/g,''),pl=S.bank-START,rk=[...RANKS].reverse().find(r=>S.best>=r[0])[1],top=Object.entries(LB).sort((a,b)=>b[1]-a[1]).slice(0,5);
+ const me=(S.lbName||S.name||'Guest').replace(/[<>&]/g,''),pl=S.bank-START,rk=[...RANKS].reverse().find(r=>S.best>=r[0])[1],top=lbRows().slice(0,5);
  $('endbox').innerHTML=`<h2>${title||'Challenge over'}</h2><div class="pn">${me}</div><div class="eg"><span>Final bankroll</span><b>${gbp(S.bank)}</b><span>Profit / loss</span><b class="${pl<0?'neg':''}">${pl<0?'-':'+'}${gbp(Math.abs(pl))}</b><span>Highest bankroll</span><b>${gbp(S.best)}</b><span>Hands played</span><b>${S.st.h}</b><span>Rank</span><b>${rk}</b></div><h3>Leaderboard</h3><ol>${top.map(([n,v])=>`<li class="${n===S.lbName?'me':''}">${n.replace(/[<>&]/g,'')}<span>${gbp(v)}</span></li>`).join('')}</ol><button class="main" id="again">Play again</button>`;
  $('endscr').hidden=false;$('again').onclick=playAgain}
 function playAgain(){
@@ -612,11 +624,14 @@ $('gr').onclick=function(){
  if(inProg()){toast('Finish the current hand first');return}
  if(!garm){garm=true;this.textContent='Tap again to confirm';gt=setTimeout(()=>{garm=false;this.textContent='↻ New £10 Challenge'},3500);return}
  garm=false;clearTimeout(gt);this.textContent='↻ New £10 Challenge';
- S.bank=START;S.best=START;S.stake=0;S.last=0;S.ended=false;TU=false;if(S.t0)S.t0=Date.now();
+ S.bank=START;S.best=START;S.stake=0;S.last=0;S.ended=false;TU=false;if(S.t0){S.t0=Date.now();newSession()}
  BB={P:0,T:0,B:0};RB={};lastR=null;lastB=null;P=[];D=[];PH=[];BH=[];phase='bet';bet=0;ins=0;offer=false;
  for(const id of ['player','dealer','phand','bhand'])$(id).innerHTML='';btots();
  say('Drag chips onto the circle, then deal');bmsg('Drag chips onto Player, Tie or Banker, then deal');rmsg('Drag chips onto the table, then spin');
  save();if(S.t0)runClock();ui();bui();rui();toast('New £10 challenge started')};
+document.querySelector('.tabs').hidden=!online();
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{period=b.dataset.p;document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('sel',x===b));loadLB()});
+loadLB();setInterval(loadLB,30000);
 if(S.ended){TU=true;showEnd('Challenge over')}else if(S.t0)runClock();
 let tm;document.querySelectorAll('#splash .soon').forEach(b=>b.onclick=()=>{const t=$('toast');t.textContent=b.dataset.g+' is a work in progress – coming soon';t.classList.add('on');clearTimeout(tm);tm=setTimeout(()=>t.classList.remove('on'),2200)});
 </script>
