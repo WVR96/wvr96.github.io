@@ -169,6 +169,11 @@ body.g-bc #bjmain,body.g-rl #bjmain{display:none}body:not(.g-bc) #bcmain{display
 #toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom,0px));transform:translate(-50%,30px);opacity:0;background:#000d;border:1px solid #d9a935;color:#f3cf6b;padding:12px 22px;border-radius:999px;transition:.3s;pointer-events:none;z-index:99}
 #toast.on{opacity:1;transform:translate(-50%,0)}
 .tabs{display:flex;gap:6px;margin:8px 0 2px}.tabs[hidden]{display:none}.tabs button{flex:1;min-width:0;padding:5px 4px;font-size:12px}
+#namegate{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.88);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:18px}#namegate[hidden]{display:none}
+.gbox{background:#161a18;color:#f1ead6;border:3px solid #d9a935;border-radius:20px;padding:26px 24px;max-width:420px;width:100%;text-align:center;box-shadow:0 20px 60px #000}
+.gbox h2{margin:8px 0 6px;color:#f3cf6b;font-size:26px;letter-spacing:.08em;text-transform:uppercase}.gbox p{margin:0 0 16px;color:#d8cfb8;font-size:15px}
+.gbox input{font:inherit;font-size:20px;text-align:center;width:100%;padding:12px;border-radius:12px;border:2px solid #d9a935;background:#0b0d0c;color:#f1ead6;margin-bottom:12px}.gbox input:focus{outline:none;border-color:#f3cf6b}
+.gbox button{width:100%;padding:12px;font-size:18px}#gerr{min-height:20px;margin-top:8px;color:#ff9a9a;font-size:14px}
 </style>
 </head>
 <body class="splash">
@@ -178,7 +183,7 @@ body.g-bc #bjmain,body.g-rl #bjmain{display:none}body:not(.g-bc) #bcmain{display
 <h1>Imperial Casino Challenge</h1>
 <p class="sub">You have <b>15 minutes</b> to turn £10 into as much as you can.</p>
 <div class="row"><ul class="how"><li>⏱ <b>15-minute limit:</b> the clock starts the moment you choose your first game.</li><li>💷 <b>Your goal:</b> you start with £10.00 of virtual money. Make as much as you can.</li><li>🔄 <b>Switch any time:</b> move between Blackjack, Baccarat and Roulette whenever you like. Your money carries over.</li><li>🏆 <b>Leaderboard:</b> your highest bankroll is ranked against other players.</li></ul>
-<div class="who"><input id="sname" maxlength="14" placeholder="Please Enter Name" aria-label="Your name" autocomplete="off"></div></div>
+</div>
 
 <div class="tiles">
 <button class="tile" id="playbj"><div class="art"><div class="pc">A<br>♠</div><div class="pc r">K<br>♥</div></div><h2>Blackjack</h2><p>Beat the dealer to 21. Blackjack pays 3 to 2.</p><span class="go">PLAY NOW</span></button>
@@ -186,6 +191,7 @@ body.g-bc #bjmain,body.g-rl #bjmain{display:none}body:not(.g-bc) #bcmain{display
 <button class="tile" id="playrl"><div class="art"><div class="wheel"></div></div><h2>Roulette</h2><p>Place your chips and spin the wheel.</p><span class="go">PLAY NOW</span></button>
 </div></div></div>
 <div id="toast"></div>
+<div id="namegate" role="dialog" aria-modal="true" aria-labelledby="gt" hidden><div class="gbox"><svg viewBox="0 0 64 64" width="60" height="60" aria-hidden="true"><circle cx="32" cy="32" r="29" fill="#0e5a3a" stroke="#d9a935" stroke-width="3"/><path d="M14 44 L12 22 L24 31 L32 16 L40 31 L52 22 L50 44 Z" fill="#d9a935" stroke="#f3cf6b" stroke-width="1.5" stroke-linejoin="round"/><rect x="14" y="46" width="36" height="5" rx="2" fill="#d9a935"/></svg><h2 id="gt">Imperial Casino Challenge</h2><p>Enter your name to take your seat. You will appear on the leaderboard under this name.</p><input id="gname" maxlength="14" placeholder="Please Enter Name" autocomplete="off" aria-label="Your name"><button class="main" id="gok">Enter the Casino</button><div id="gerr" role="alert"></div></div></div>
 <button id="gr">↻ New £10 Challenge</button>
 <div id="clock" hidden></div>
 <div id="endscr" hidden><div id="endbox"></div></div>
@@ -269,7 +275,7 @@ try{Object.assign(S,JSON.parse(localStorage.getItem(KS)||'{}'));LB=JSON.parse(lo
 if(!S.lbName&&S.name&&LB[S.name.trim()])S.lbName=S.name.trim();
 S.stake=0;if(!Number.isFinite(S.bank)||!Number.isFinite(S.best))S.bank=S.best=START;
 /* ---------- Supabase shared leaderboard ---------- */
-const SB_URL='https://gupncyaipzbueulhpcka.supabase.co',SB_KEY='sb_publishable_pwq7GYjVCCwTCJPq30XCAg_V-2XD_2I';
+const SB_URL='PASTE_PROJECT_URL_HERE',SB_KEY='PASTE_ANON_KEY_HERE';
 const online=()=>SB_URL.startsWith('https://')&&SB_KEY.length>40;
 let lastSent=0,LBR=null,period='all';
 async function sb(fn,args){const r=await fetch(SB_URL+'/rest/v1/rpc/'+fn,{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json'},body:JSON.stringify(args||{})});if(!r.ok)throw new Error(r.status);return r.json()}
@@ -440,11 +446,11 @@ look();
 shuffle();save();ui();
 
 let tm2;function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(tm2);tm2=setTimeout(()=>t.classList.remove('on'),2200)}
-function enter(g){const n=$('sname').value.trim();if(!n){toast('Enter your name first');$('sname').focus();return}
+function enter(g){const n=S.lbName;if(!n){showGate();return}
  S.name=n;S.lbName=n;$('name').value=n;if(!S.t0){S.t0=Date.now();runClock();newSession()}save();board();
  document.body.classList.remove('splash','g-bj','g-bc','g-rl');document.body.classList.add('g-'+g);window.scrollTo(0,0);ui();bui();rui()}
-function menu(){if(busy||bplay||rplay||phase==='play')return;document.body.classList.remove('g-bj','g-bc','g-rl');document.body.classList.add('splash');$('sname').value=S.name;window.scrollTo(0,0)}
-$('sname').value=S.name;$('playbj').onclick=()=>enter('bj');$('playbc').onclick=()=>enter('bc');$('playrl').onclick=()=>enter('rl');$('menu').onclick=menu;$('menu2').onclick=menu;$('menu3').onclick=menu;
+function menu(){if(busy||bplay||rplay||phase==='play')return;document.body.classList.remove('g-bj','g-bc','g-rl');document.body.classList.add('splash');window.scrollTo(0,0)}
+$('playbj').onclick=()=>enter('bj');$('playbc').onclick=()=>enter('bc');$('playrl').onclick=()=>enter('rl');$('menu').onclick=menu;$('menu2').onclick=menu;$('menu3').onclick=menu;
 /* ---------- Baccarat ---------- */
 const RK=['A','2','3','4','5','6','7','8','9','10','J','Q','K'],KS3=['P','T','B'];
 let bdeck=[],BB={P:0,T:0,B:0},PH=[],BH=[],bplay=false,lastB=null;
@@ -618,7 +624,7 @@ function playAgain(){
  S.bank=START;S.best=START;S.stake=0;S.last=0;S.t0=0;S.ended=false;TU=false;
  BB={P:0,T:0,B:0};RB={};lastR=null;lastB=null;P=[];D=[];PH=[];BH=[];phase='bet';bet=0;ins=0;offer=false;busy=false;
  for(const id of ['player','dealer','phand','bhand'])$(id).innerHTML='';btots();say('Drag chips onto the circle, then deal');bmsg('Drag chips onto Player, Tie or Banker, then deal');rmsg('Drag chips onto the table, then spin');
- save();$('endscr').hidden=true;$('clock').hidden=true;document.body.classList.remove('g-bj','g-bc','g-rl');document.body.classList.add('splash');ui();bui();rui();window.scrollTo(0,0)}
+ save();$('endscr').hidden=true;$('clock').hidden=true;document.body.classList.remove('g-bj','g-bc','g-rl');document.body.classList.add('splash');ui();bui();rui();window.scrollTo(0,0);showGate()}
 let garm=false,gt;
 $('gr').onclick=function(){
  if(inProg()){toast('Finish the current hand first');return}
@@ -629,9 +635,16 @@ $('gr').onclick=function(){
  for(const id of ['player','dealer','phand','bhand'])$(id).innerHTML='';btots();
  say('Drag chips onto the circle, then deal');bmsg('Drag chips onto Player, Tie or Banker, then deal');rmsg('Drag chips onto the table, then spin');
  save();if(S.t0)runClock();ui();bui();rui();toast('New £10 challenge started')};
+function showGate(){$('gname').value=S.lbName||'';$('gerr').textContent='';$('namegate').hidden=false;setTimeout(()=>$('gname').focus(),50)}
+function submitName(){const n=$('gname').value.replace(/[<>&]/g,'').trim().slice(0,14);
+ if(!n){$('gerr').textContent='Please enter a name to continue';$('gname').focus();return}
+ S.name=n;S.lbName=n;$('name').value=n;LB[n]=Math.max(LB[n]||0,S.best);save();board();$('namegate').hidden=true}
+$('gok').onclick=submitName;$('gname').onkeydown=e=>{if(e.key==='Enter')submitName()};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('namegate').hidden)e.preventDefault()});
 document.querySelector('.tabs').hidden=!online();
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{period=b.dataset.p;document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('sel',x===b));loadLB()});
 loadLB();setInterval(loadLB,30000);
+if(!S.lbName)showGate();
 if(S.ended){TU=true;showEnd('Challenge over')}else if(S.t0)runClock();
 let tm;document.querySelectorAll('#splash .soon').forEach(b=>b.onclick=()=>{const t=$('toast');t.textContent=b.dataset.g+' is a work in progress – coming soon';t.classList.add('on');clearTimeout(tm);tm=setTimeout(()=>t.classList.remove('on'),2200)});
 </script>
